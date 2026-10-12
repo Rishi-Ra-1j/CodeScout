@@ -9,21 +9,25 @@ load_dotenv()
 api_key=os.getenv("GEMINI_API_KEY")
 
 URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"  
+client=httpx.Client(timeout=30)
 RETRY_STATUS = {429, 500, 502, 503, 504}
 def log_call(record: dict) -> None:
-    with open("call.json1", "a") as f:
+    with open("call.jsonl", "a") as f:
         f.write(json.dumps(record)+ "\n")
 
-def ask_llm(prompt: str,max_retries: int=3) -> dict:
+def ask_llm(prompt: str,max_retries: int=3, json_mode:bool = False) -> dict:
     headers = {"x-goog-api-key":api_key}
+    generation_config = {"thinkingConfig": {"thinkingBudget": 0}}
+    if json_mode:
+        generation_config["responseMimeType"]="application/json"
     body={
         "contents":[{"parts":[{"text":prompt}]}],
-        "generationConfig": {"thinkingConfig": {"thinkingBudget": 0}},
+        "generationConfig": generation_config,
     }
     start=time.perf_counter()
     for attempt in range(max_retries + 1) : 
         try:
-            r=httpx.post(URL, headers=headers, json=body,timeout=30)
+            r=client.post(URL, headers=headers, json=body,timeout=30)
         except httpx.TimeoutException:
             if attempt == max_retries:
                 raise
@@ -50,5 +54,7 @@ def ask_llm(prompt: str,max_retries: int=3) -> dict:
 
 
 if __name__ == "__main__" :
-    result= ask_llm("Explain what an API is in one sentence.")
-    print(result)
+    for _ in range(3):
+        result= ask_llm("Explain what an API is in one sentence.")
+        print(result["latency_ms"])
+
