@@ -8,7 +8,7 @@ summary (string), language (string), functions (list of strings).
 {code}"""
     last_error = None
     for attempt in range(max_attempts):
-        text = ask_llm(prompt, json_mode=True)["text"]
+        text = ask_llm(prompt, json_mode=True,purpose="summarize")["text"]
         try:
             return CodeSummary.model_validate_json(text)
         except ValidationError as e:

@@ -2,11 +2,15 @@ import os
 import httpx
 import time
 import json
+import logging
 from dotenv import load_dotenv
+from db import save_llm_call
 
 load_dotenv()
 
 api_key=os.getenv("GEMINI_API_KEY")
+
+logger = logging.getLogger("codescout")
 
 URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"  
 client=httpx.Client(timeout=30)
@@ -15,7 +19,7 @@ def log_call(record: dict) -> None:
     with open("call.jsonl", "a") as f:
         f.write(json.dumps(record)+ "\n")
 
-def ask_llm(prompt: str,max_retries: int=3, json_mode:bool = False) -> dict:
+def ask_llm(prompt: str,max_retries: int=3, json_mode:bool = False, purpose: str = "unknown") -> dict:
     headers = {"x-goog-api-key":api_key}
     generation_config = {"thinkingConfig": {"thinkingBudget": 0}}
     if json_mode:
@@ -50,6 +54,10 @@ def ask_llm(prompt: str,max_retries: int=3, json_mode:bool = False) -> dict:
             "latency_ms": latency_ms,
         }
         log_call({"ts":time.time(),**{k: v for k, v in result.items() if k!= "text"}})
+        try: 
+            save_llm_call(purpose, result)
+        except Exception as e: 
+            logger.error("could not save call to db: %s",e)
         return result
 
 
