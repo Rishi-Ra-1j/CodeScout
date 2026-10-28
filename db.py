@@ -6,8 +6,8 @@ load_dotenv()
 
 def get_conn():
     return psycopg.connect(
-        host="127.0.0.1",
-        port=5433,
+        host=os.getenv("DB_HOST", "127.0.0.1"),
+        port=int(os.getenv("DB_PORT","5433")),
         user="codescout",
         password=os.getenv("DB_PASSWORD"),
         dbname="codescout",
